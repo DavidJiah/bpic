@@ -1,0 +1,62 @@
+.table {
+  width: 100%;
+}
+.replyContent{
+  line-height: 3em;
+  :global{
+    h2{
+      text-align: center;
+    }
+    p{
+      text-indent: 2em;
+      margin: 0;
+    }
+    a{
+      white-space: pre-line;
+    }
+  }
+}
+.TextArea{
+  width: 500px;
+}
+.inscribe{
+  margin: 50px 0;
+  tbody{
+    float: right;
+  }
+}
+
+.submitReport{
+  h2{
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .butSpace{
+    margin-top: 40px;
+    float: right;
+  }
+}
+
+.auditReport{
+  .patrolInfo{
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    .patrolInfoBox{
+      span{
+        margin-right: 50px;
+      }
+    }
+  }
+  .content{
+    width: 85%;
+    :global{
+      .ant-form-item{
+        margin: 12px 0;
+      }
+      .ant-space-item:nth-child(3){
+        width: 45%;
+      }
+    }
+  }
+}

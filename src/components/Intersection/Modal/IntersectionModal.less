@@ -1,0 +1,29 @@
+
+
+.cellCols{padding: 0px;  text-align: center;}
+.cellRow{min-width: 50px;text-align: center; padding: 0px;}
+
+.tableForm,.tableForm tr th, .tableForm tr td { border:1px solid #434343; }
+.tableForm { 
+    width: 862px;
+    border-collapse: collapse;
+    height: 545px;
+    td{ 
+        max-width: 63px;
+    }
+    :global {
+        .ant-select-selector , .ant-input-number { border: 0!important;} 
+        .ant-upload{
+            width: 100%; overflow: hidden; height: 380px; margin: 0; padding: 0;
+        }
+    }
+} 
+.IntersectionForm{
+    :global {
+        .ant-input-number{
+            width: 100%;
+            min-width: 50px;
+        } 
+        .ant-form-item-control {max-width: 100%; }
+    }
+}
