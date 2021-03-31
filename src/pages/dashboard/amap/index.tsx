@@ -91,6 +91,8 @@ class Amap extends Component<AmapProps> {
     if(markerLnglat&&markerLnglat.length === 2)
       initialValues= { intIntersectionLatitude:markerLnglat[0], intIntersectionLongitude:markerLnglat[1] }
     return { 
+      type: 'create',
+      disabled: false,
       initialValues,
       item: modalType === 'create' ? {} : currentItem,
       visible: modalVisible,

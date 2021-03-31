@@ -8,7 +8,7 @@ import _ from 'lodash'
 import { MONTH_ALL, WEEK_ALL, DATA_ALL } from '@/const'
 
 export default (props: any) => {
-  const { intersectionId = '10' } = props
+  const { intersectionId } = props
   const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
   const [dataSource, setDataSource] = useState<any[]>([]);
   const actionRef = useRef<ActionType>();

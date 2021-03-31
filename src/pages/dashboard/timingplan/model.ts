@@ -1,7 +1,8 @@
 import type { Reducer } from 'umi';
 
 export interface ModalState {
-  phasescs: any[]
+  phasescs: any[],
+  editPhase: any,
 }
 
 export interface ModelType {
@@ -9,14 +10,15 @@ export interface ModelType {
   state: ModalState;
   reducers: {
     setPhases: Reducer<ModalState>;
-   
+    setEdit: Reducer<ModalState>;
   };
   effects: {
   };
 }
 
 const initState = {
-  phasescs: []
+  phasescs: [],
+  editPhase: false
 };
 
 const Model: ModelType = {
@@ -25,8 +27,11 @@ const Model: ModelType = {
   effects: {
   },
   reducers: {
-    setPhases(state, { payload }) {
+    setPhases (state: any, { payload }) {
       return { ...state, phasescs: payload}
+    },
+    setEdit(state: any, { payload }) {
+      return { ...state, editPhase: payload}
     }
   },
 };

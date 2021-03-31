@@ -12,19 +12,33 @@ import RoadTree from '@/components/Intersection/RoadTree'
 import ProCard from '@ant-design/pro-card';
 import styles from './index.less'
 import Edit from './edit'
+import { message } from 'antd';
 
 const Comp: React.FC<any> = ({ }) => {
-  const [road, setRoad] = useState<any>();
+  const [intersectionId, setIntersectionId] = useState<string>('');
+  const [intersectionTitle, setIntersectionTitle] = useState<string>('请先选择路口');
+
+  // 点击树
+  const onSelect = (selectedKeys: any, e: any) => {
+    if (e.node.item1) {
+      if (e.node.item1.intersectionId) {
+        setIntersectionTitle(`${e.node.item1.trfcSlice}-${e.node.item1.intersectionName}`);
+        setIntersectionId(e.node.item1.intersectionId);
+      } else {
+        message.warning('请先为该路口建档');
+      }
+    }
+  };
 
   return (
     <>
       <GridContent>
         <ProCard split="vertical" className={styles.bg}>
           <ProCard title="益阳市" colSpan="260px" className={styles.bg}>
-            <RoadTree onSelect={(_: any, e: any) => e?.node?.item1 && setRoad(e?.node?.item1)} />
+            <RoadTree onSelect={onSelect} />
           </ProCard>
-          <ProCard className={styles.bg}>
-            {road && <Edit roadInfo={road} />}
+          <ProCard className={styles.bg} title={intersectionTitle}>
+            {intersectionId && <Edit roadInfo={intersectionId} intersectionId={intersectionId} />}
           </ProCard>
         </ProCard>
       </GridContent>

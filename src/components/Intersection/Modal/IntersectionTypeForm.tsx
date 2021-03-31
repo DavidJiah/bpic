@@ -1,10 +1,11 @@
 
 import React, { Component } from 'react'
 import styles from './IntersectionModal.less'
-import { InputNumber, Upload, message, Select, Form ,Image} from 'antd'
+import { InputNumber, Upload, message, Select, Form, Image } from 'antd'
 import { LoadingOutlined, PlusOutlined, ArrowUpOutlined, ArrowDownOutlined, ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import { saveEntranceExit } from './service'
+import { saveEntranceExit, updateEntranceExit, getEntranceExit } from './service'
 import reqwest from 'reqwest';
+import _ from 'lodash';
 
 const { Option } = Select;
 
@@ -49,7 +50,9 @@ function getBase64(img, callback) {
     */
 
 interface Props {
-  initialValues: any
+  initialValues: any;
+  disabled: boolean;
+  type: any;
 }
 
 class IntersectionTypeForm extends Component<Props> {
@@ -61,10 +64,10 @@ class IntersectionTypeForm extends Component<Props> {
       entranceExitDirection: '东进口', // 进出口路口方向
       intIntersectionId: '',// 路口ID
       intTargetIntersectionId: '', // 目标路口ID
-      leftTurnLaneCount: null,  // 左转车道数
+      leftTurnLaneCount: 1,  // 左转车道数
       leftTurnSignalType: '', // 左转信号灯形状
       rightTurnLaneCount: null, // 右转车道数
-      rightTurnSignalType: '',// 右转信号灯形状
+      rightTurnSignalType: '1',// 右转信号灯形状
       straightLaneCount: null, // 直行车道数
       straightLaneSignalType: '', // 直行信号灯形状
       uturnLaneCount: null, // 掉头车道数
@@ -112,14 +115,50 @@ class IntersectionTypeForm extends Component<Props> {
     }
   };
 
-  handleChange = info => {
+  componentWillMount() {
+    this.getlist()
+  }
+
+  getlist = async () => {
+    const { formRef }: any = this
+    const { initialValues, type } = this.props
+    if (type === 'look' || type === 'edit') {
+      const { data, msg, code } = await getEntranceExit(initialValues.intIntersectionId)
+      if (+code === 0) {
+        _.map(data?.intEntranceExitList, (item: any) => {
+          let formKey = ''
+          if (item?.entranceExitDirection == '东进口') {
+            formKey = 'form1'
+          } else if (item?.entranceExitDirection == '南进口') {
+            formKey = 'form2'
+          } else if (item?.entranceExitDirection == '西进口') {
+            formKey = 'form3'
+          } else if (item?.entranceExitDirection == '北进口') {
+            formKey = 'form4'
+          }
+          formRef.current?.setFieldsValue({
+            [formKey + '.leftTurnLaneCount']: item?.leftTurnLaneCount,  // 左转车道数
+            [formKey + '.leftTurnSignalType']: item?.leftTurnSignalType, // 左转信号灯形状
+            [formKey + '.rightTurnLaneCount']: item?.rightTurnLaneCount, // 右转车道数
+            [formKey + '.rightTurnSignalType']: item?.rightTurnSignalType,// 右转信号灯形状
+            [formKey + '.straightLaneCount']: item?.straightLaneCount, // 直行车道数
+            [formKey + '.straightLaneSignalType']: item?.straightLaneSignalType, // 直行信号灯形状
+            [formKey + '.uturnLaneCount']: item?.uturnLaneCount, // 掉头车道数
+            [formKey + '.uturnSignalType']: item?.uturnSignalType // 掉头信号灯形状
+          })
+        })
+      } else message.error(msg)
+    }
+  }
+
+  handleChange = (info: any) => {
     if (info.file.status === 'uploading') {
       this.setState({ loading: true });
       return;
     }
     if (info.file.status === 'done') {
       // Get this url from response in real world.
-      getBase64(info.file.originFileObj, imageUrl =>
+      getBase64(info.file.originFileObj, (imageUrl: any) =>
         this.setState({
           imageUrl,
           loading: false,
@@ -129,25 +168,30 @@ class IntersectionTypeForm extends Component<Props> {
   };
 
   onSubmit = () => {
-    const { formRef } = this
-    const { initialValues } = this.props
+    const { formRef }: any = this
+    const { initialValues, type } = this.props
     const { form1, form2, form3, form4 } = this.state
-    if (!initialValues.id) {
+    if (!initialValues.id && !initialValues.intIntersectionId) {
       message.warning('请先填写，路口基本信息!');
       return
     }
     formRef.current.validateFields()
       .then(async () => {
-        const models = [form1, form2, form3, form4]
-        const msg = await saveEntranceExit(initialValues.id, models)
-        if (msg.code === 0) {
-          message.success('新增成功');
+        if (type === 'create') {
+          const models = [form1, form2, form3, form4]
+          const msg = await saveEntranceExit(initialValues.id, models)
+          if (msg.code === 0) message.success('新增渠化图成功');
+          else message.error(`新增渠化图失败，${msg.msg}`);
+        } else if (type === 'edit') {
+          const models = [form1, form2, form3, form4]
+          const msg = await updateEntranceExit(initialValues.intIntersectionId, models)
+          if (msg.code === 0) message.success('更新渠化图成功');
+          else message.error(`更新渠化图失败，${msg.msg}`);
         }
       })
-      .catch(info => {
+      .catch((info: any) => {
         console.log('Validate Failed:', info);
       });
-
   };
   customRequest = (info: any) => {
     const { initialValues } = this.props
@@ -186,8 +230,9 @@ class IntersectionTypeForm extends Component<Props> {
   }
 
   render() {
-    const { initialValues } = this.props
-    const { loading, imageUrl } = this.state;
+    const { disabled } = this.props
+    const { loading, imageUrl, form1 } = this.state;
+    console.log(this.formRef)
     const uploadButton = (
       <div>
         {loading ? <LoadingOutlined /> : <PlusOutlined />}
@@ -196,7 +241,7 @@ class IntersectionTypeForm extends Component<Props> {
     );
 
     return (
-      <Form ref={this.formRef} initialValues={initialValues} onValuesChange={this.onValuesChange.bind(this)}>
+      <Form ref={this.formRef} onValuesChange={this.onValuesChange.bind(this)}>
         <table className={styles.tableForm} >
           <tbody>
             <tr>
@@ -204,25 +249,25 @@ class IntersectionTypeForm extends Component<Props> {
               <td className={styles.cellCols} >
                 <Form.Item name="form1.rightTurnLaneCount"
                   style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
 
               <td className={styles.cellCols} >
-                <Form.Item name="form1.straightLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                <Form.Item name="form1.straightLaneCount" style={{ margin: 0 }}>
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
 
               <td className={styles.cellCols} >
                 <Form.Item name="form1.leftTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
 
               <td className={styles.cellCols} >
                 <Form.Item name="form1.uturnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td colSpan={7} rowSpan={3} style={{ textAlign: 'center' }}>东进口</td>
@@ -235,8 +280,8 @@ class IntersectionTypeForm extends Component<Props> {
             </tr>
             <tr>
               <td className={styles.cellCols}>
-                <Form.Item name="form1.rightTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                <Form.Item name="form1.rightTurnSignalType" style={{ margin: 0 }} initialValues={form1.rightTurnSignalType}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -246,7 +291,7 @@ class IntersectionTypeForm extends Component<Props> {
               </td>
               <td className={styles.cellCols}>
                 <Form.Item name="form1.straightLaneSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -256,7 +301,7 @@ class IntersectionTypeForm extends Component<Props> {
               </td>
               <td className={styles.cellCols}>
                 <Form.Item name="form1.leftTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -266,7 +311,7 @@ class IntersectionTypeForm extends Component<Props> {
               </td>
               <td className={styles.cellCols}>
                 <Form.Item name="form1.uturnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -278,6 +323,7 @@ class IntersectionTypeForm extends Component<Props> {
             <tr>
               <td colSpan={8} rowSpan={8} style={{ textAlign: 'center' }}>
                 <Upload
+                  disabled={disabled}
                   beforeUpload={() => {
                     // if(initialValues.id)return true 
                     message.info('上传失败，请先填定信息保存后再上传图片？')
@@ -289,12 +335,12 @@ class IntersectionTypeForm extends Component<Props> {
                   showUploadList={false}
                   onChange={this.handleChange}
                 >
-                  {imageUrl ?  <Image preview={imageUrl} src={imageUrl} width={'100%'} />  : uploadButton}
+                  {imageUrl ? <Image preview={imageUrl} src={imageUrl} width={'100%'} /> : uploadButton}
                 </Upload>
               </td>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.rightTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -305,14 +351,14 @@ class IntersectionTypeForm extends Component<Props> {
               <td className={styles.cellRow}>右转</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.rightTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
             </tr>
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.straightLaneSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -323,14 +369,14 @@ class IntersectionTypeForm extends Component<Props> {
               <td className={styles.cellRow}>直行</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.straightLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
             </tr>
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.leftTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -341,14 +387,14 @@ class IntersectionTypeForm extends Component<Props> {
               <td className={styles.cellRow}>左转</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.leftTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
             </tr>
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.uturnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -359,20 +405,20 @@ class IntersectionTypeForm extends Component<Props> {
               <td className={styles.cellRow}>掉头</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form2.uturnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
             </tr>
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.uturnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellRow}>掉头</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.uturnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -385,13 +431,13 @@ class IntersectionTypeForm extends Component<Props> {
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.leftTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellRow}>左转</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.leftTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -403,13 +449,13 @@ class IntersectionTypeForm extends Component<Props> {
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.straightLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellRow}>直行</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.straightLaneSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -421,13 +467,13 @@ class IntersectionTypeForm extends Component<Props> {
             <tr>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.rightTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellRow}>右转</td>
               <td className={styles.cellRow}>
                 <Form.Item name="form4.rightTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -439,8 +485,8 @@ class IntersectionTypeForm extends Component<Props> {
             <tr>
               <td colSpan={7} rowSpan={3} style={{ textAlign: 'center' }}>西进口</td>
               <td className={styles.cellCols} >
-                <Form.Item name="form5.uturnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                <Form.Item name="form3.uturnSignalType" style={{ margin: 0 }} >
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -449,8 +495,8 @@ class IntersectionTypeForm extends Component<Props> {
                 </Form.Item>
               </td>
               <td className={styles.cellCols} >
-                <Form.Item name="form5.leftTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                <Form.Item name="form3.leftTurnSignalType" style={{ margin: 0 }} >
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -459,8 +505,8 @@ class IntersectionTypeForm extends Component<Props> {
                 </Form.Item>
               </td>
               <td className={styles.cellCols} >
-                <Form.Item name="form5.straightLaneSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                <Form.Item name="form3.straightLaneSignalType" style={{ margin: 0 }} >
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -469,8 +515,8 @@ class IntersectionTypeForm extends Component<Props> {
                 </Form.Item>
               </td>
               <td className={styles.cellCols} >
-                <Form.Item name="form5.rightTurnSignalType" style={{ margin: 0 }} >
-                  <Select allowClear style={{ width: '100%', minWidth: '64px' }}>
+                <Form.Item name="form3.rightTurnSignalType" style={{ margin: 0 }} >
+                  <Select disabled={disabled} allowClear style={{ width: '100%', minWidth: '64px' }}>
                     <Option value="1"><ArrowUpOutlined /></Option>
                     <Option value="2"><ArrowDownOutlined /></Option>
                     <Option value="3"><ArrowLeftOutlined /></Option>
@@ -488,23 +534,23 @@ class IntersectionTypeForm extends Component<Props> {
             </tr>
             <tr>
               <td className={styles.cellCols}>
-                <Form.Item name="form5.uturnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                <Form.Item name="form3.uturnLaneCount" style={{ margin: 0 }} >
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellCols}>
-                <Form.Item name="form5.leftTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                <Form.Item name="form3.leftTurnLaneCount" style={{ margin: 0 }} >
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellCols}>
-                <Form.Item name="form5.straightLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                <Form.Item name="form3.straightLaneCount" style={{ margin: 0 }} >
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
               <td className={styles.cellCols}>
-                <Form.Item name="form5.rightTurnLaneCount" style={{ margin: 0 }} >
-                  <InputNumber min={1} max={5} />
+                <Form.Item name="form3.rightTurnLaneCount" style={{ margin: 0 }} >
+                  <InputNumber disabled={disabled} min={1} max={5} />
                 </Form.Item>
               </td>
             </tr>

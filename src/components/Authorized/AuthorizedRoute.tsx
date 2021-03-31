@@ -1,3 +1,10 @@
+/*
+ * @Author: Dad
+ * @Date: 2021-03-16 18:03:23
+ * @LastEditTime: 2021-03-27 10:08:48
+ * @LastEditors: Dad
+ * @Description: 
+ */
 import { Redirect, Route } from 'umi';
 
 import React from 'react';
@@ -19,15 +26,15 @@ const AuthorizedRoute: React.SFC<AuthorizedRouteProps> = ({
   redirectPath,
   ...rest
 }) => (
-  // <Authorized
-  //   authority={authority}
-  //   noMatch={<Route {...rest} render={() => <Redirect to={{ pathname: redirectPath }} />} />}
-  // >
+  <Authorized
+    authority={authority}
+    noMatch={<Route {...rest} render={() => <Redirect to={{ pathname: redirectPath }} />} />}
+  >
     <Route
       {...rest}
       render={(props: any) => (Component ? <Component {...props} /> : render(props))}
     />
-  // </Authorized>
+  </Authorized>
 );
 
 export default AuthorizedRoute;

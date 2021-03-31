@@ -10,43 +10,43 @@ import { Reducer } from 'redux';
 import { getList } from './services';
 
 interface ModelType {
-    namespace: string;
-    state: any;
-    effects: {
-        fetchList: Effect;
-    };
-    reducers: {
-        setList: Reducer;
-    };
+  namespace: string;
+  state: any;
+  effects: {
+    fetchList: Effect;
+  };
+  reducers: {
+    setList: Reducer;
+  };
 }
 
 const Model: ModelType = {
-    namespace: 'maintenance',
-    state: {
-        tableList: [],
-        total: 0,
-    },
+  namespace: 'maintenance',
+  state: {
+    tableList: [],
+    total: 0,
+  },
 
-    effects: {
-        *fetchList({ queryParams, callback }, { call, put }) {
-            const { code, data, msg } = yield call(getList, queryParams);
-            if (code == 0) {
-                yield put({
-                    type: 'setList',
-                    payload: data,
-                });
-            } else message.error(msg);
-        },
+  effects: {
+    *fetchList({ queryParams, callback }, { call, put }) {
+      const { code, data, msg } = yield call(getList, queryParams);
+      if (code == 0) {
+        yield put({
+          type: 'setList',
+          payload: data.records,
+        });
+      } else message.error(msg);
     },
+  },
 
-    reducers: {
-        setList(state, { payload }) {
-            return {
-                ...state,
-                tableList: payload,
-            };
-        },
+  reducers: {
+    setList(state:any, { payload }: any) {
+      return {
+        ...state,
+        tableList: payload,
+      };
     },
+  },
 };
 
 export default Model;

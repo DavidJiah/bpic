@@ -1,14 +1,59 @@
-.planLine{
-    margin:10px 0px
+.planLine {
+  margin: 10px 0px 80px 0px;
+  position: relative;
 }
 
-.unPlan{
-    width: 100%;
-    height: 20px;
-    background-color: #55a9f7;
-    float: left;
+.timePlan {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  >div{
+    >span{
+      cursor: pointer;
+    }
+  }
 }
-.plan{
-    height: 20px;
-    position: relative;
+
+.top {
+  display: initial;
+}
+
+.button {
+//   float: right;
+  margin-top: 10px;
+}
+
+.unPlan {
+  width: 100%;
+  height: 20px;
+  background-color: #55a9f7;
+  float: left;
+  position: absolute;
+
+  >span:nth-child(1) {
+    position: absolute;
+    left: -26px;
+    bottom: -20px;
+    z-index: 98;
+  }
+
+  >span:nth-child(2) {
+    position: absolute;
+    right: -26px;
+    bottom: -20px;
+    z-index: 99;
+  }
+}
+
+.plan {
+  height: 20px;
+  position: absolute;
+  text-align: center;
+}
+
+.scale {
+  position: absolute;
+  right: -26px;
+  bottom: -20px;
+  z-index: 100;
 }

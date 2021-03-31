@@ -19,7 +19,7 @@ export type Status = {
 };
 
 export default (props: any) => {
-  const { phasescs, updatePhases, intIntersectionId } = props;
+  const { phasescs, updatePhases, intersectionId, setEdit } = props;  
   const actionRef = useRef<ActionType>();
   const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
@@ -71,7 +71,7 @@ export default (props: any) => {
       title: '操作',
       valueType: 'option',
       width: 200,
-      render: (_, row, index, action) => [
+      render: (_, row: any, index, action) => [
         <a
           key="editable"
           onClick={async () => {
@@ -79,13 +79,9 @@ export default (props: any) => {
               return;
             }
             row.isEdit = true;
-            const msg = await querySubControlPlan(intIntersectionId, row.id);
-            updatePhases(
-              msg.data.phaseList.map((e: any) => {
-                e.scControlPlanCode = e.scControlPlanId;
-                return e;
-              }),
-            );
+            const msg = await querySubControlPlan(intersectionId, row.id);
+            const { phaseList } = msg.data;
+            updatePhases(phaseList);
             setExpandedRowKeys([row.id]);
             action.startEditable(row.id);
           }}
@@ -96,7 +92,7 @@ export default (props: any) => {
           key="del"
           title="是否确定删除?"
           onConfirm={async () => {
-            const msg = await deleteControlPlan(intIntersectionId, row.id);
+            const msg = await deleteControlPlan(intersectionId, row.id);
             if (msg.code === 0) message.success('删除成功');
             else message.error('删除失败，请联系管理员');
             action.reload();
@@ -110,14 +106,9 @@ export default (props: any) => {
       ],
     },
   ];
-  const expandedRowRender = (props) => {
-    return (
-      <SubPhaseTable
-        subPhasescs={phasescs}
-        updatePhases={updatePhases}
-        editableKeys={phasescs.map((e: any) => e.scPhaseNumber)}
-      />
-    );
+  const expandedRowRender = (
+  ) => {
+    return <SubPhaseTable subPhasescs={phasescs} setEdit={setEdit} />;
   };
   return (
     <>
@@ -127,7 +118,8 @@ export default (props: any) => {
         bordered={true}
         columns={columns}
         request={async () => {
-          const msg = await queryControlPlan(intIntersectionId);
+          updatePhases([]);
+          const msg = await queryControlPlan(intersectionId);
           return {
             data: msg.data.controlPlanList,
             success: true,
@@ -138,7 +130,7 @@ export default (props: any) => {
         pagination={false}
         expandable={{
           expandedRowRender,
-          rowExpandable: (record) => record.isEdit,
+          rowExpandable: (record: any) => record.isEdit,  
           expandedRowKeys,
           onExpand: (expanded: any, record: any) => {
             if (!expanded) setExpandedRowKeys([]);
@@ -149,7 +141,7 @@ export default (props: any) => {
           <Button
             type="dashed"
             ghost
-            onClick={() => actionRef.current?.addEditRecord({ id: intIntersectionId })}
+            onClick={() => actionRef.current?.addEditRecord({ intersectionId })}
           >
             <PlusOutlined />
             添加
@@ -164,11 +156,11 @@ export default (props: any) => {
           editableKeys,
           onSave: async (key, row) => {
             if (row.id) {
-              const msg = await updateControlPlan(intIntersectionId, row.id, row, phasescs);
+              const msg = await updateControlPlan(intersectionId, row.id, row, phasescs);
               if (msg.code === 0) message.success('修改成功');
               else message.error('修改失败，请联系管理员');
             } else {
-              const msg = await addControlPlan(intIntersectionId, row);
+              const msg = await addControlPlan(intersectionId, row);
               if (msg.code === 0) message.success('新增成功');
               else message.error('新增失败，请联系管理员');
             }

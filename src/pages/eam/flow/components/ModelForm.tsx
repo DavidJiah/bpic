@@ -4,16 +4,7 @@ import ProForm, { ProFormDatePicker } from '@ant-design/pro-form';
 import { ProColumns, EditableProTable } from '@ant-design/pro-table';
 import BaseApi from '@/utils/BaseApi';
 import moment from 'moment';
-
-// 时分转时间戳
-const time_to_timestamp = (date: any) => {
-  var time = date.split(' ')[1]
-  var s = 0;
-  var hour = time.split(':')[0]
-  var min = time.split(':')[1]
-  s = (Number(hour * 3600) + Number(min * 60)) * 1000;
-  return s;
-}
+import { dateTime_to_timestamp } from '@/utils/utils'
 
 type DataSourceType = {
   id: React.Key;
@@ -107,8 +98,8 @@ const CreateForm: React.FC<any> = React.forwardRef((props, ref) => {
   // 新增
   const handleAdd = async (value: any, dataSource: any) => {
     const newParams ={
-      comBeginTime: time_to_timestamp(value.timeRange[0]),
-      comEndTime: time_to_timestamp(value.timeRange[1]),
+      comBeginTime: dateTime_to_timestamp(value.timeRange[0]),
+      comEndTime: dateTime_to_timestamp(value.timeRange[1]),
       comRecordDate: new Date(value.comRecordDate).getTime(),
       trafficVolumeDetailList: dataSource
     }
@@ -127,8 +118,8 @@ const CreateForm: React.FC<any> = React.forwardRef((props, ref) => {
   // 编辑
   const handleUpdate = async (value: any, dataSource: any) => {
     const newParams ={
-      comBeginTime: time_to_timestamp(value.timeRange[0]),
-      comEndTime: time_to_timestamp(value.timeRange[1]),
+      comBeginTime: dateTime_to_timestamp(value.timeRange[0]),
+      comEndTime: dateTime_to_timestamp(value.timeRange[1]),
       comRecordDate: new Date(value.comRecordDate).getTime(),
       trafficVolumeDetailList: dataSource.length > 4 ? dataSource.slice(4) : dataSource
     }

@@ -12,6 +12,7 @@ export type GlobalUpload = {
   onChange: any,
   type?: string,
   imgUrl?: string,
+  editID?: string,
 }
 
 class GlobalUpLoad extends React.Component<GlobalUpload> {
@@ -48,7 +49,7 @@ class GlobalUpLoad extends React.Component<GlobalUpload> {
    */
   customRequest = (info: any) => {
     const { initialValues } = this.props
-    const formData = new FormData();
+    const formData: any = new FormData();
     formData.append('file', info?.file);
     formData.append('businessId', `${initialValues?.id}`);
     formData.append('businessType', `${initialValues?.businessType}`);
@@ -56,22 +57,22 @@ class GlobalUpLoad extends React.Component<GlobalUpload> {
     formData.append('moduleCode', 'uscp');
     this.setState({ loading: true })
     reqwest({
-      url: '/api/file/', // 上传url
-      method: 'post',
+      url: `${this.props?.editID?'/api/file/'+this.props?.editID:'/api/file/'}`, // 上传url
+      method: `${this.props?.editID?'put':'post'}`,
       processData: false,
       data: formData,
       success: (res: any) => {
         if (res.code === 0) {
           const { onChange } = this.props
           const { data } = res
-          const imageUrl = `http://116.63.45.33:8888/file/download/${data.id}`
+          const imageUrl = `${data.filePath}`
           this.setState({ imageUrl, loading: false });
-          message.success('上传成功！');
+          message.success('上传文件成功！');
           onChange && onChange(data)
         }
       },
       error: () => {
-        message.error('上传失败！');
+        message.error('上传文件失败！');
       },
     });
   }

@@ -1,10 +1,12 @@
 import request from '@/utils/request';
 
 export async function updateControlPlan(
-  intersectionId: string,controlPlanId: string,
+  intersectionId: string,
+  controlPlanId: string,
   controlPlan: any,
   phaseList: any) {
-    return request(`/api/biz/intersection/${intersectionId}/control-plan/${controlPlanId}`, {
+    debugger
+    return request(`/api/biz/intersection/${intersectionId}/control-plan/${controlPlanId}`, { // 编辑信号配时方案
       method: 'PATCH',
       data: { 
         controlPlan,
@@ -13,22 +15,26 @@ export async function updateControlPlan(
     });
 }
 
-export async function queryControlPlan(intersectionId: string ) {
-    return request(`/api/biz/intersection/${intersectionId}?queries=controlPlanList`);
+export async function queryControlPlan(intersectionId: string ) { // 获取信号配时方案
+  return request(`/api/biz/intersection/${intersectionId}?queries=controlPlanList`);
 }
+
 export async function querySubControlPlan(intersectionId: string,controlPlanId: string ) {
   return request(`/api/biz/intersection/${intersectionId}/control-plan/${controlPlanId}`);
 }
 
-export async function addControlPlan(intersectionId: string,data: any ) {
+export async function addControlPlan(intersectionId: string,data: any ) { //新增信号配时方案
+  debugger
   return request(`/api/biz/intersection/${intersectionId}/control-plan/`,{
     method: 'POST',
     data
   });
 }
 
-export async function deleteControlPlan(intersectionId: string,controlPlanId: string ) {
-  return request(`/api/biz/intersection/${intersectionId}/control-plan/${controlPlanId}`,{method: 'DELETE'  });
+export async function deleteControlPlan(intersectionId: string,controlPlanId: string ) { // 删除信号配时方案
+  return request(`/api/biz/intersection/${intersectionId}/control-plan/${controlPlanId}`,{
+    method: 'DELETE'
+  });
 }
 
 export async function savePlanSchedule(intersectionId: string,data: any ) {
@@ -78,6 +84,34 @@ export async function updataControlStrategy(intersectionId: string,controlStrate
 
 export async function queryControlPlanList( intersectionId: any) {
   return request(`/api/biz/intersection/${intersectionId}?queries=controlPlanList`);
+}
+
+export async function queryTimePlanList( intersectionId: any) { // 查询日计划列表
+  return request(`/api/biz/intersection/${intersectionId}?queries=dailyPlanList`);
+}
+
+export async function saveTimePlanApi(intersectionId: string, data: any ) { //新增日计划
+  return request(`/api/biz/intersection/${intersectionId}/daily-plan/`,{
+    method: 'POST',
+    data
+  });
+}
+
+export async function updataTimePlanApi(intersectionId: string,dailyPlanId: any, data: any ) { //更改日计划
+  return request(`/api/biz/intersection/${intersectionId}/daily-plan/${dailyPlanId}`,{
+    method: 'PATCH',
+    data
+  });
+}
+
+export async function deteleTimePlanApi(intersectionId: string,dailyPlanId: any ) { // 删除日计划
+  return request(`/api/biz/intersection/${intersectionId}/daily-plan/${dailyPlanId}`,{
+    method: 'DELETE'
+  });
+}
+
+export async function getTimePlan( intersectionId: any, dailyPlanId: any) { // 查询单个日计划详情
+  return request(`/api/biz/intersection/${intersectionId}/daily-plan/${dailyPlanId}`);
 }
 
 

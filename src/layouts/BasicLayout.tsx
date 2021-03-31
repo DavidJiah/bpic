@@ -10,11 +10,14 @@ import type {
 } from '@ant-design/pro-layout';
 import ProLayout, { SettingDrawer } from '@ant-design/pro-layout';
 import React, { useEffect, useRef } from 'react';
-import type { Dispatch} from 'umi';
+import type { Dispatch } from 'umi';
 import { Link, connect, history } from 'umi';
 import Authorized from '@/utils/Authorized';
 import RightContent from '@/components/GlobalHeader/RightContent';
-import type { ConnectState } from '@/models/connect'; 
+import type { ConnectState } from '@/models/connect';
+import { useMemo } from 'react';
+import { getMatchMenu } from '@umijs/route-utils';
+import { Redirect } from 'react-router-dom';
 
 export type BasicLayoutProps = {
   breadcrumbNameMap: Record<string, MenuDataItem>;
@@ -40,7 +43,6 @@ const menuDataRender = (menuList: MenuDataItem[]): MenuDataItem[] =>
     return Authorized.check(item.authority, localItem, null) as MenuDataItem;
   });
 
-
 const BasicLayout: React.FC<BasicLayoutProps> = (props) => {
   const {
     dispatch,
@@ -58,6 +60,15 @@ const BasicLayout: React.FC<BasicLayoutProps> = (props) => {
       });
     }
   }, []);
+
+  // get children authority
+  const authorized = useMemo(
+    () =>
+      getMatchMenu(location.pathname || '/', menuDataRef.current).pop() || {
+        authority: undefined,
+      },
+    [location.pathname],
+  );
   /**
    * init variables
    */
@@ -117,9 +128,9 @@ const BasicLayout: React.FC<BasicLayoutProps> = (props) => {
           return menuData || [];
         }}
       >
-        {/* <Authorized authority={authorized!.authority} noMatch={noMatch}> */}
+        <Authorized authority={authorized!.authority} noMatch={<Redirect to="/user" />}>
           {children}
-        {/* </Authorized> */}
+        </Authorized>
       </ProLayout>
       <SettingDrawer
         settings={settings}

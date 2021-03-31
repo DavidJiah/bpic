@@ -4,7 +4,7 @@
  * @LastEditors: Dad
  * @LastEditTime: 2021-03-10 22:41:51
  */
-import request from 'umi-request';
+import request from '@/utils/request';
 
 export interface List {
   userName: string;

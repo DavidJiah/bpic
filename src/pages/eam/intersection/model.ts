@@ -6,7 +6,8 @@
  */
 import { message } from 'antd';
 import { Effect } from 'dva';
-import { Reducer } from 'redux';
+// import { any } from 'prop-types';
+// import { Reducer } from 'redux';
 import { getList } from './service';
 
 interface ModelType {
@@ -16,13 +17,16 @@ interface ModelType {
     fetchList: Effect;
   };
   reducers: {
-    setList: Reducer;
+    showRoadModal: any;
+    hideRoadModal: any;
+    setList: any;
   };
 }
 
 const Model: ModelType = {
   namespace: 'intersectionList',
   state: {
+    modalVisible: false,
     tableList: [],
     total: 0,
   },
@@ -40,7 +44,13 @@ const Model: ModelType = {
   },
 
   reducers: {
-    setList(state, { payload }) {
+    showRoadModal(state: any, { payload }: any) {
+      return { ...state, ...payload, modalVisible: true }
+    },
+    hideRoadModal(state: any, { payload }: any) {
+      return { ...state,...payload, modalVisible: false }
+    },
+    setList(state: any, { payload }: any) {
       return {
         ...state,
         tableList: payload,

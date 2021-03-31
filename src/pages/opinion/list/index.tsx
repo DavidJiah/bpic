@@ -2,17 +2,37 @@
  * @Author: Dad
  * @Date: 2021-03-09 11:17:52
  * @LastEditors: Dad
- * @LastEditTime: 2021-03-09 13:56:08
+ * @LastEditTime: 2021-03-29 11:13:48
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { connect, history } from 'umi';
 import { Dispatch, AnyAction } from 'redux';
-import { Button, Col, Row, Form, Select, DatePicker, Table, message, Dropdown, Menu, Space, Popconfirm, Pagination } from 'antd';
+import {
+  Button,
+  Col,
+  Row,
+  Form,
+  Select,
+  DatePicker,
+  Table,
+  message,
+  Dropdown,
+  Menu,
+  Space,
+  Popconfirm,
+  Pagination,
+} from 'antd';
 import { EllipsisOutlined } from '@ant-design/icons';
-import FormModal from '../components/creatModel'
+import FormModal from '../components/creatModel';
 import style from './index.less';
-import { getIntersectionInfo, getpages, Delete } from './service'
-import { DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE, OPINION_TYPE } from '@/const'
+import { getIntersectionInfo, getpages, Delete, uplaod } from './service';
+import {
+  DEFAULT_PAGE_NUM,
+  DEFAULT_PAGE_SIZE,
+  OPINION_TYPE,
+  YEAR_FORMAT,
+  DATA_FORMAT,
+} from '@/const';
 import _ from 'lodash';
 import moment from 'moment';
 
@@ -38,24 +58,23 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
   const [rowData, setRowData] = useState<object>({});
   const [list, setList] = useState<any>([]);
 
-
   useEffect(() => {
     getIntersectionList();
   }, []);
 
   useEffect(() => {
-    initList()
+    initList();
   }, [currPage, pageSize]);
 
   /**
-  * @name: 获取所有路口信息
-  */
+   * @name: 获取所有路口信息
+   */
   const getIntersectionList = async () => {
     try {
       const { code, data, msg } = await getIntersectionInfo();
-      if (code == 0) setList(data)
-      else message.error(msg)
-    } catch (error) { }
+      if (code == 0) setList(data);
+      else message.error(msg);
+    } catch (error) {}
   };
 
   /**
@@ -63,40 +82,68 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
    */
   const initList = async () => {
     const param = form?.getFieldsValue();
-    const { code, data, msg } = await getpages({ current: currPage, size: pageSize, template: { ...param } })
-    if (code === 0) {
-      setTableData(data.records)
-    } else { message.success(msg) }
-  }
+    const takingTime = param?.takingTime && [
+      moment(param?.takingTime[0]).valueOf(),
+      moment(param?.takingTime[1]).valueOf(),
+    ];
+    param?.takingTime && delete param?.takingTime;
 
-  const pushreply = (param: any) => {
-    console.log(param)
-  }
+    const list = _.filter(param, (item: any) => item);
+
+    const { code, data, msg } = await getpages({
+      current: currPage,
+      size: pageSize,
+      template: (!_.isEmpty(list) && param) || undefined,
+      conditions: (!_.isEmpty(takingTime) && { takingTime }) || undefined,
+    });
+    if (code === 0) {
+      setTableData(data.records);
+    } else {
+      message.success(msg);
+    }
+  };
+
+  const pushreply = async (param: any) => {
+    const { code, msg } = await uplaod({ feedBackStatus: '已处理' }, param.id);
+    if (code === 0) {
+      message.success('发布成功');
+      initList();
+    } else message.error(msg);
+  };
 
   const handleEidt = (param: any) => {
-    setModalType('编辑')
-    setmodalVisible(true)
-    setRowData(param)
-  }
+    setModalType('编辑');
+    setmodalVisible(true);
+    setRowData(param);
+  };
 
   const handleDetele = async (param: any) => {
-    const { code, msg } = await Delete(param.id)
-    if (code === 0) message.success('删除成功'), initList()
-    else message.warning(msg)
-  }
+    const { code, msg } = await Delete(param.id);
+    if (code === 0) message.success('删除成功'), initList();
+    else message.warning(msg);
+  };
 
   const menu = (data: any) => {
     return (
       <Menu>
-        <Menu.Item key="1" onClick={() => { history.push({ pathname: '/opinion/detail', query: { id: data.id, type: 'look' } }) }}>查看</Menu.Item>
-        <Menu.Item key="2" onClick={() => handleEidt(data)}>编辑</Menu.Item>
+        <Menu.Item
+          key="1"
+          onClick={() => {
+            history.push({ pathname: '/opinion/detail', query: { id: data.id, type: 'look' } });
+          }}
+        >
+          查看
+        </Menu.Item>
+        <Menu.Item key="2" onClick={() => handleEidt(data)}>
+          编辑
+        </Menu.Item>
         <Menu.Item key="3">
           <Popconfirm title="是否确认删除?" onConfirm={() => handleDetele(data)}>
             删除
           </Popconfirm>
         </Menu.Item>
       </Menu>
-    )
+    );
   };
 
   const columns = [
@@ -120,7 +167,7 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
       dataIndex: 'takingTime',
       key: 'takingTime',
       valueType: 'date',
-      render: (item: any) => moment(item).format("YYYY-MM-DD")
+      render: (item: any) => moment(item).format(YEAR_FORMAT),
     },
     {
       title: '状态',
@@ -131,7 +178,8 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
       title: '回复时间',
       dataIndex: 'feedBackTime',
       key: 'feedBackTime',
-      valueType: 'date'
+      valueType: 'date',
+      render: (item: any) => moment(item).format(YEAR_FORMAT),
     },
     {
       title: '操作',
@@ -140,10 +188,16 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
       width: '150px',
       render: (text: any, record: any) => (
         <Space>
-          <a onClick={() => { history.push({ pathname: '/opinion/detail', query: { id: record.id, type: 'edit' } }) }}>回复</a>
-          <a onClick={() => pushreply(record)}>发布</a>
+          <a
+            onClick={() => {
+              history.push({ pathname: '/opinion/detail', query: { id: record.id, type: 'edit' } });
+            }}
+          >
+            回复
+          </a>
+          {record.feedBackStatus == '待回复' && <a onClick={() => pushreply(record)}>发布</a>}
           <Dropdown overlay={menu(record)}>
-            <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
+            <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
               <EllipsisOutlined />
             </a>
           </Dropdown>
@@ -156,11 +210,21 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
     <div>
       <Form {...layout} name="formList" form={form} initialValues={{ remember: true }}>
         <Row>
-          <Col span={2}><Button type="primary" shape="round" onClick={() => { setmodalVisible(true), setModalType('新增流量') }}>新增舆情</Button></Col>
+          <Col span={2}>
+            <Button
+              type="primary"
+              shape="round"
+              onClick={() => {
+                setmodalVisible(true), setModalType('新增流量');
+              }}
+            >
+              新增舆情
+            </Button>
+          </Col>
           <Col span={4}>
             <Form.Item {...layout} label="路口名称" name="correlateIntersection">
               <Select placeholder="全部">
-                {_.map(list, (item: any,) => (
+                {_.map(list, (item: any) => (
                   <Select.Option key={item?.intersectionCode} value={item?.intersectionName}>
                     {item?.intersectionName}
                   </Select.Option>
@@ -171,13 +235,11 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
           <Col span={4}>
             <Form.Item {...layout} label="舆情类型" name="publicSentimentType">
               <Select placeholder="全部">
-                {
-                  OPINION_TYPE.map((item: any) => (
-                    <Option key={item?.key} value={item?.value}>
-                      {item?.value}
-                    </Option>
-                  ))
-                }
+                {OPINION_TYPE.map((item: any) => (
+                  <Option key={item?.key} value={item?.value}>
+                    {item?.value}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
@@ -185,34 +247,48 @@ const Comp: React.FC<CompProps> = ({ dispatch, loading }) => {
             <Form.Item {...layout} label="处理状态" name="feedBackStatus">
               <Select placeholder="全部">
                 <Option value="待回复">待回复</Option>
-                <Option value="未处理">未处理</Option>
                 <Option value="已处理">已处理</Option>
               </Select>
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item {...layout} label="接单时间范围" name="feedBackTime">
-              <DatePicker.RangePicker />
+            <Form.Item {...layout} label="接单时间范围" name="takingTime">
+              <DatePicker.RangePicker format={YEAR_FORMAT} />
             </Form.Item>
           </Col>
           <Col span={4}>
             <Space>
-              <Button type="primary" onClick={() => initList()}>确认</Button>
+              <Button type="primary" onClick={() => initList()}>
+                确认
+              </Button>
               <Button onClick={() => form.resetFields()}>重置</Button>
             </Space>
           </Col>
         </Row>
       </Form>
       <div className={style.table}>
-        <Table columns={columns} dataSource={TableData} rowKey='id' pagination={false} />
-        <div className="global-pagination" >
-          <Pagination showQuickJumper defaultCurrent={currPage} total={TableData?.length} onChange={(val: number, pageSize?: number) => {setCurrPage(val),pageSize?setPageSize(pageSize):null}} />
+        <Table columns={columns} dataSource={TableData} rowKey="id" pagination={false} />
+        <div className="global-pagination">
+          <Pagination
+            showQuickJumper
+            defaultCurrent={currPage}
+            total={TableData?.length}
+            onChange={(val: number, pageSize?: number) => {
+              setCurrPage(val), pageSize ? setPageSize(pageSize) : null;
+            }}
+          />
         </div>
       </div>
-      <FormModal modalVisible={modalVisible} initList={initList} onCancel={() => setmodalVisible(false)} ModalType={modalType} editData={rowData} />
-    </div >
-  )
-}
+      <FormModal
+        modalVisible={modalVisible}
+        initList={initList}
+        onCancel={() => setmodalVisible(false)}
+        ModalType={modalType}
+        editData={rowData}
+      />
+    </div>
+  );
+};
 
 export default connect(({ loading }: any) => ({
   loading: loading.effects['productManagerList/fetchList'],

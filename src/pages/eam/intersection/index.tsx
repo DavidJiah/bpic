@@ -4,18 +4,20 @@
  * @LastEditors: Dad
  * @LastEditTime: 2021-03-11 22:22:27
  */
-import { connect } from 'umi';
+import { connect, history } from 'umi';
 import React, { useEffect, useState } from 'react';
 import { Button, Col, Row, Form, Select, Card, Table, Pagination, message, Cascader } from 'antd';
 import style from './style.less';
 import { DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE, AREAList, AREASHAPEList } from '@/const'
 import _ from 'lodash';
 import { getIntersectionInfo } from './service'
+import {IntersectionModal} from '@/components/Intersection'
 
 interface IntersectionProps {
   tableList?: [],
   dispatch: any;
   loading: boolean;
+  modalVisible: boolean;
 }
 
 const layout = {
@@ -23,12 +25,15 @@ const layout = {
   wrapperCol: { span: 14 },
 };
 
-const Comp: React.FC<IntersectionProps> = ({ dispatch, tableList, loading }) => {
+const Comp: React.FC<IntersectionProps> = ({ dispatch, tableList, modalVisible, loading }) => {
   const [form] = Form.useForm();
   const [currPage, setCurrPage] = useState(DEFAULT_PAGE_NUM);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [list, setList] = useState<any>([]);
   const [areaList, setAreaList] = useState<any>([]);
+  const [initialValues, setInitialValues] = useState<any>({})
+  const [disabled, setDisabled] = useState<any>(false)
+  const [type, setType] = useState<any>('create')
 
   useEffect(() => {
     initList()
@@ -86,7 +91,28 @@ const Comp: React.FC<IntersectionProps> = ({ dispatch, tableList, loading }) => 
     currPage === 1 ? initList() : setCurrPage(1);
   };
 
-  const columns = [
+  const addDate = () => { // 新增
+    setInitialValues({})
+    setDisabled(false)
+    setType('create')
+    dispatch({type: 'intersectionList/showRoadModal'})
+  }
+
+  const look = (record: any) => { // 查看
+    setDisabled(true)
+    setInitialValues(record)
+    setType('look')
+    dispatch({type: 'intersectionList/showRoadModal'})
+  }
+  
+  const edit = (record: any) => { // 编辑
+    setInitialValues(record)
+    setDisabled(false)
+    setType('edit')
+    dispatch({type: 'intersectionList/showRoadModal'})
+  }
+
+  const columns: any = [
     {
       title: '路口编号',
       align: 'center',
@@ -147,16 +173,39 @@ const Comp: React.FC<IntersectionProps> = ({ dispatch, tableList, loading }) => 
       align: 'center',
       fixed: 'right',
       width: 100,
-      render: () => <Row><Col span={12}><Button type='link'>查看</Button></Col><Col span={12}><Button type='link'>编辑</Button></Col> </Row>
+      render: (text: any, record: any) => <Row><Col span={12}><Button type='link' onClick={() => look(record)}>查看</Button></Col><Col span={12}><Button type='link' onClick={() => edit(record)}>编辑</Button></Col> </Row>
     }
   ];
+
+  const IntersectionModalProps = {
+    type: type,
+    disabled: disabled,
+    initialValues: initialValues,
+    visible: modalVisible,
+    destroyOnClose: true,
+    maskClosable: false,
+    width:'910px',
+    title: '路口建档',
+    centered: true,
+    onOk: (data: any) => {
+      dispatch({
+        type: `amap/create`,
+        payload: data,
+      })
+    },
+    onCancel: () =>{
+      dispatch({
+        type: 'intersectionList/hideRoadModal',
+      })
+    }
+  }
 
   return (
     <>
       <Card bordered={false} >
         <Form {...layout} name="formList" form={form} initialValues={{ remember: true }}>
           <Row>
-            <Col span={2}><Button type="primary" shape="round">新增路口</Button></Col>
+            <Col span={2}><Button type="primary" shape="round" onClick={() => addDate()}>新增路口</Button></Col>
             <Col span={4}>
               <Form.Item {...layout} label="地域" name="intersection" >
                 <Select placeholder="全部" onChange={(val: number) => getIntersectionDeailInfo(val)}>
@@ -210,10 +259,11 @@ const Comp: React.FC<IntersectionProps> = ({ dispatch, tableList, loading }) => 
           </Row>
         </Form>
         <div className={style.title}>路口列表</div>
-        <Table loading={loading} scroll={{ x: 1400 }} columns={columns} pagination={false} dataSource={tableList} />
+        <Table rowKey="intIntersectionCode" loading={loading} scroll={{ x: 1400 }} columns={columns} pagination={false} dataSource={tableList} />
         <div className="global-pagination" >
           <Pagination showQuickJumper defaultCurrent={currPage} total={tableList?.length} onChange={(val: number) => setCurrPage(val)} />
         </div>
+        <IntersectionModal  {...IntersectionModalProps}/>
       </Card>
     </>
   );
@@ -222,4 +272,5 @@ const Comp: React.FC<IntersectionProps> = ({ dispatch, tableList, loading }) => 
 export default connect(({ intersectionList: intersectionList, loading }: any) => ({
   tableList: intersectionList?.tableList,
   loading: loading.effects['intersectionList/fetchList'],
+  modalVisible: intersectionList?.modalVisible
 }))(Comp);

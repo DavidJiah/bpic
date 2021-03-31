@@ -4,37 +4,58 @@
  * @LastEditors: Dad
  * @LastEditTime: 2021-03-10 22:41:51
  */
-import request from 'umi-request';
+import request from '@/utils/request';
+import _ from 'lodash'
 
 export interface List {
   userName: string;
   password: string;
 }
 
-export async function getpages(data: any) {
-  return request('/api/biz/insp-patrol/daily-task/page', {
+export async function getPathPages(data: any) {
+  return request('/api/biz/insp-patrol/patrol-path/page', {
     method: 'POST',
     data,
   });
 }
 
-export async function Delete(id: any) {
-  return request('/api/biz/insp-patrol/daily-task/' + id, {
+export async function getPathById(patrolPathId: any) {
+  return request(`/api/biz/insp-patrol/patrol-path/${patrolPathId}`, {
+    method: 'GET',
+  });
+}
+
+export async function Delete(patrolPathId: any) {
+  return request(`/api/biz/insp-patrol/patrol-path/${patrolPathId}`, {
     method: 'DELETE',
   });
 }
 
-export async function creatData(data: any) {
-  return request('/api/biz/insp-patrol/daily-task/', {
+export async function creatPath(data: any) {
+  const newdata = {
+    patrolPath: {inspPatrolPathName: data?.pathName},
+    patrolPathNodeList: _.map(data?.roadInfo, (item: any) => ({
+      intIntersectionId: item?.intersectionId,
+      intIntersectionName: item?.title,
+    }))
+  }
+  return request('/api/biz/insp-patrol/patrol-path/', {
     method: 'POST',
-    data,
+    data: newdata,
   });
 }
 
-export async function update(data: any, id: any) {
-  return request('/api/biz/insp-patrol/daily-task/' + id, {
+export async function updatePath(patrolPathId:any, data: any) {
+  const newdata = {
+    patrolPath: {inspPatrolPathName: data?.pathName},
+    patrolPathNodeList: _.map(data?.roadInfo, (item: any) => ({
+      intIntersectionId: item?.intersectionId,
+      intIntersectionName: item?.title,
+    }))
+  }
+  return request(`/api/biz/insp-patrol/patrol-path/${patrolPathId}`, {
     method: 'PATCH',
-    data,
+    data: newdata,
   });
 }
 

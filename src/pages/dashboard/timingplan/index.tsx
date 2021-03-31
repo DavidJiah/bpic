@@ -55,7 +55,7 @@ class TimingPlan extends Component<TimingPlanProps> {
       PlanProps,
       props: {
         location: {
-          query: { id },
+          query: { id, title },
         },
       },
     } = this;
@@ -64,8 +64,8 @@ class TimingPlan extends Component<TimingPlanProps> {
         <React.Fragment>
           <Row gutter={24} style={{ margin: 0, padding: 0 }}>
             <Col span={24} style={{ margin: 0, padding: 0 }}>
-              <Phasesc {...PhasescProps} intersectionId={id} />
-              <PlanTable {...PlanProps} intIntersectionId={id} />
+              <Phasesc {...PhasescProps} intersectionId={id} title={title} />
+              <PlanTable {...PlanProps} intersectionId={id} />
               <PlanRange intIntersectionId={id} />
               <SchedulingPlan intersectionId={id} />
               <Solution intersectionId={id} />

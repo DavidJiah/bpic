@@ -41,11 +41,13 @@
     "@types/lodash.isequal": "^4.5.5",
     "@umijs/route-utils": "^1.0.33",
     "antd": "^4.12.3",
+    "axios": "^0.21.1",
     "bizcharts": "^3.5.3-beta.0",
     "bizcharts-plugin-slider": "^2.1.1-beta.1",
     "classnames": "^2.2.6",
     "dva": "^2.4.0",
     "gg-editor": "^2.0.2",
+    "js-cookie": "^2.2.1",
     "js-md5": "^0.7.3",
     "lodash": "^4.17.21",
     "lodash-decorators": "^6.0.0",
@@ -67,7 +69,9 @@
     "react-slick": "^0.28.0",
     "reqwest": "^2.0.5",
     "umi": "^3.2.14",
-    "umi-request": "^1.0.8"
+    "umi-request": "^1.0.8",
+    "xlsx": "^0.16.9",
+    "zrender": "^5.0.4"
   },
   "devDependencies": {
     "@ant-design/pro-cli": "^1.0.28",

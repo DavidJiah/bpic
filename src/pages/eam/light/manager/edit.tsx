@@ -4,7 +4,6 @@
  * @LastEditors: Dad
  * @LastEditTime: 2021-03-15 17:13:51
  */
-import { Col, Row } from 'antd';
 import { connect } from 'umi';
 import type { ModalState } from '@/pages/dashboard/timingplan/model';
 import React, { Component } from 'react';
@@ -17,40 +16,56 @@ class Edit extends Component<any> {
   }
   get PhasescProps() {
     const { dispatch, timingPlan } = this.props
-    const { phasescs } = timingPlan
+    const { phasescs, editPhase } = timingPlan;
     return {
+      editPhase,
+      setEdit: (edit: any) => {
+        dispatch({
+          type: 'timingPlan/setEdit',
+          payload: edit,
+        });
+      },
       phasescs,
       updatePhases: (list: any) => {
         dispatch({
           type: 'timingPlan/setPhases',
           payload: list,
         });
-      }
-    }
+      },
+    };
   }
   get PlanProps() {
-    const { dispatch, timingPlan } = this.props
+    const { dispatch, timingPlan, roadInfo } = this.props;
+    const { intersectionId } = roadInfo;
     const { phasescs } = timingPlan
     return {
       phasescs,
+      intersectionId,
       updatePhases: (list: any) => {
         dispatch({
           type: 'timingPlan/setPhases',
           payload: list,
         });
-      }
+      },
+      setEdit: (edit: any) => {
+        dispatch({
+          type: 'timingPlan/setEdit',
+          payload: edit,
+        });
+      },
     }
   }
 
   render() {
-    const { PhasescProps, PlanProps } = this
+    const { PhasescProps, PlanProps } = this;
+    const { intersectionId } = this.props
     return (
       <GridContent>
-        <Phasesc  {...PhasescProps} />
-        <PlanTable {...PlanProps} />
-        <PlanRange />
-        <SchedulingPlan intersectionId='10' />
-        <Solution intersectionId='10' />
+        <Phasesc {...PhasescProps} intersectionId={intersectionId} />
+        <PlanTable {...PlanProps} intersectionId={intersectionId} />
+        <PlanRange intIntersectionId={intersectionId} />
+        <SchedulingPlan intersectionId={intersectionId} />
+        <Solution intersectionId={intersectionId} />
       </GridContent>
     );
   }

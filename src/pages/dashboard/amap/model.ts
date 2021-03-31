@@ -15,7 +15,7 @@ export interface ModalState {
 
 export interface ModelType {
   namespace: string;
-  state: ModalState;
+  state: any;
   reducers: {
     showRoadModal: Reducer<ModalState>;
     hideRoadModal: Reducer<ModalState>;

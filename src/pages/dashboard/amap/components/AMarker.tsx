@@ -61,7 +61,7 @@ const AMarker: React.FC<any> = (props) => {
                 <Button
                   type="dashed"
                   onClick={() =>
-                    history.push({ pathname: `/dashboard/timingPlan`, query: { id: item.id } })
+                    history.push({ pathname: `/dashboard/timingPlan`, query: { id: item?.id, title: item?.title } })
                   }
                   style={{ width: '100%' }}
                 >

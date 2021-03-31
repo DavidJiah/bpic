@@ -2,7 +2,7 @@
  * @Author: Dad
  * @Date: 2021-03-08 16:20:04
  * @LastEditors: Dad
- * @LastEditTime: 2021-03-10 11:29:45
+ * @LastEditTime: 2021-03-30 14:38:20
  */
 /**
  * request 网络请求工具
@@ -10,6 +10,7 @@
  */
 import { extend } from 'umi-request';
 import { message, notification } from 'antd';
+import { getToken, removeToken, removeType } from './cookie';
 
 const codeMessage = {
   200: '服务器成功返回请求的数据。',
@@ -60,6 +61,7 @@ const request = extend({
   headers: {
     Accept: '*/*',
     'Content-Type': 'application/json',
+    authorization: getToken(), //请求头中加入token
   },
 });
 
@@ -69,17 +71,21 @@ request.use(async (ctx, next) => {
   const { data, method } = options;
 
   // data可能为undefind
-  options.data = {
-    ...data,
-  };
+  options.data = data ? data : {};
 
-  await next();
+  try {
+    await next();
+  } catch (error) {}
+
   const {
-    res: { code },
+    res: { status, ok },
   } = ctx;
-  if (code == 401) {
-    message.error('登录失效');
+
+  if (status == 401 && !ok) {
+    removeToken();
+    removeType();
     window.location.href = '/';
+    message.error('登录失效');
   }
 });
 export default request;

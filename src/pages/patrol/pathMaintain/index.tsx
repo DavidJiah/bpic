@@ -1,12 +1,13 @@
-import { connect } from 'umi';
+import { connect, history } from 'umi';
 import React, { Component } from 'react';
 import type { ModalState } from '@/pages/eam/environment/model';
-import { AMapScene, LineLayer } from '@antv/l7-react';
+import { AMapScene } from '@antv/l7-react';
 import AMarker from './AMarker';
-import { Drawer, Button, Form, Input, Steps, Space } from 'antd';
-import { CloseCircleOutlined } from '@ant-design/icons';
+import { Popover, Button, message } from 'antd';
 import styles from './index.less';
 import _ from 'lodash';
+import { CloseCircleOutlined } from '@ant-design/icons';
+import { getPathPages, Delete } from './service'
 
 interface Props {
   pathMaintain: ModalState;
@@ -14,14 +15,13 @@ interface Props {
   loading: boolean;
   list: any[];
 }
-
-
 class Comp extends Component<Props> {
   state = {
     markerLnglat: [], //坐标
     markerLng: [], //线
     roadInfo: [], //点击的路口信息
     visible: true, //弹窗显隐
+    roadlist: [], // 路径列表
   };
 
   componentDidMount() {
@@ -38,10 +38,12 @@ class Comp extends Component<Props> {
         count: 5,
       },
     });
+
+    this.initlist()
   }
 
   get aMarkerProps() {
-    const { dispatch, pathMaintain } = this.props;
+    const { pathMaintain } = this.props;
     let { list } = pathMaintain;
     const self = this;
     const tlist = list || [];
@@ -57,45 +59,47 @@ class Comp extends Component<Props> {
         };
       }),
       onAdd(obj: any) {
-        self.setState({
-          markerLng: [...self.state.markerLng, obj.lnglat],
-          roadInfo: [...self.state.roadInfo, obj],
-        });
+        const item = self.state.roadInfo.find((item: any) => obj?.intersectionId == item?.intersectionId) // 防止数组加入相同的值
+        if (!item) {
+          self.setState({
+            markerLng: [...self.state.markerLng, obj.lnglat],
+            roadInfo: [...self.state.roadInfo, obj]
+          })
+        }
       },
     };
   }
 
-  stepsTitle = (title: any) => {
+  stepsTitle = (title: any, index: number) => {
     return (
       <div>
-        <span style={{ marginRight: '10px' }}>{title}</span><CloseCircleOutlined />
+        <span style={{ marginRight: '10px' }}>{title}</span>
+        {(index == 0 || index == this.state?.roadInfo?.length - 1) && <CloseCircleOutlined />}
       </div>
-    )
+    );
+  };
+
+  initlist = async() => {
+    const {code, msg, data} = await getPathPages({})
+    if(code == 0) this.setState({roadlist: data?.records})
+    else message.error(msg)
   }
 
   save = (values: any) => {
-    console.log(values?.pathName, this.state.roadInfo)
-  }
+    console.log(values?.pathName, this.state.roadInfo);
+  };
 
-  Detele = (index: any) => {
-    console.log(index)
-    index === 0 ? this.state.roadInfo.shift() : this.state.roadInfo.pop()
-    this.setState({ roadInfo: this.state.roadInfo })
-    console.log(this.state.roadInfo)
-  }
+  deteleData = async(id: any) => {
+    const {code, msg} = await Delete(id)
+    if(code == 0) message.success('删除成功'), this.initlist()
+    else message.error(msg)
+  };
 
   render() {
     const self = this;
     const { dispatch } = this.props;
     const { aMarkerProps } = this;
-    const { markerLng, roadInfo } = this.state;
-    console.log(this.state)
-    const plist = [
-      {
-        type: 'Polygon',
-        geometryCoord: [markerLng],
-      },
-    ];
+    const { roadlist } = this.state;
     return (
       <>
         <AMapScene
@@ -114,7 +118,7 @@ class Comp extends Component<Props> {
             right: 0,
             bottom: 0,
           }}
-          onSceneLoaded={({ map }) => {
+          onSceneLoaded={({ map }: any) => {
             map.on('dblclick', (msg: any) => {
               self.setState({ markerLnglat: [msg.lnglat.R, msg.lnglat.Q] });
             });
@@ -128,44 +132,50 @@ class Comp extends Component<Props> {
             });
           }}
         >
-          <div style={{ width: '100%' }}>
+          <div className={styles.mask}>
+            <ul>
+              {roadlist.map((item: any) => (
+                <li>
+                  <Popover
+                    content={() => (
+                      <>
+                        <Button
+                          style={{ marginRight: '8px' }}
+                          onClick={() => {
+                            history.push({
+                              pathname: `/patrol/list`,
+                              query: { id: item?.patrolPath?.id },
+                            });
+                          }}
+                        >
+                          编辑
+                        </Button>
+                        <Button onClick={() => this.deteleData(item?.patrolPath?.id)}>删除</Button>
+                      </>
+                    )}
+                    trigger="hover"
+                  >
+                    <Button block={true}>{item?.patrolPath?.inspPatrolPathName}</Button>
+                  </Popover>
+                </li>
+              ))}
+            </ul>
             <div style={{ margin: '16 0 0 16' }}>
-              <Button type="primary" onClick={() => { this.setState({ visible: true }) }}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  history.push({pathname: '/patrol/list'})
+                }}
+              >
                 +创建路径
               </Button>
             </div>
-            <Drawer
-              title="创建路线"
-              placement="left"
-              closable={false}
-              mask={false}
-              zIndex={1}
-              onClose={() => { this.setState({ visible: false }) }}
-              visible={this.state.visible}
-              getContainer={false}
-              style={{ position: 'absolute', width: '16%' }}
-            >
-              <Form layout='vertical' onFinish={(values) => { this.save(values) }}>
-                <Form.Item label='路线名称' name='pathName'>
-                  <Input placeholder="请输入路线名称" />
-                </Form.Item>
-                <Form.Item name="intersectionList" label="选择的路口">
-                  <Steps progressDot current={21} direction="vertical" size='small' onChange={(current) => { this.Detele(current) }}>
-                    {roadInfo?.map((item: any, index: any) => (<Steps.Step title={this.stepsTitle(item?.title)} status={'finish'} disabled={index != 0 && index != (roadInfo.length - 1)} />))}
-                  </Steps>
-                </Form.Item>
-                <Space>
-                  <Button>取消</Button>
-                  <Button type='primary' htmlType="submit" onClick={() => { }}>保存</Button>
-                </Space>
-              </Form>
-            </Drawer>
           </div>
           <AMarker {...aMarkerProps} />
-          <LineLayer
+          {/* <LineLayer
             key="p2"
             source={{
-              data: plist,
+              data: [],
               parser: {
                 type: 'json',
                 coordinates: 'geometryCoord',
@@ -177,7 +187,7 @@ class Comp extends Component<Props> {
             size={{
               values: [2, 20],
             }}
-          ></LineLayer>
+          ></LineLayer> */}
         </AMapScene>
       </>
     );

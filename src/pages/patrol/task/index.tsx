@@ -2,16 +2,29 @@
  * @Author: Dad
  * @Date: 2021-03-09 11:17:52
  * @LastEditors: Dad
- * @LastEditTime: 2021-03-09 13:56:08
+ * @LastEditTime: 2021-03-25 19:30:06
  */
 import React, { useState, useEffect } from 'react';
 import { connect, history } from 'umi';
 import { Dispatch, AnyAction } from 'redux';
-import { Button, Col, Row, Form, Select, Table, message, Dropdown, Menu, Space, Popconfirm, Pagination } from 'antd';
+import {
+  Button,
+  Col,
+  Row,
+  Form,
+  Select,
+  Table,
+  message,
+  Dropdown,
+  Menu,
+  Space,
+  Popconfirm,
+  Pagination,
+} from 'antd';
 import { EllipsisOutlined } from '@ant-design/icons';
-import { getpages, getIntersectionInfo, Delete } from './service'
-import { DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE } from '@/const'
-import ModalForm from './ModalForm'
+import { fetchList, getIntersectionInfo, deleteOrder, distributeTask } from './service';
+import { DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE, USER_ENGINEER } from '@/const';
+import ModalForm from './ModalForm';
 import _ from 'lodash';
 import style from './index.less';
 import moment from 'moment';
@@ -26,9 +39,11 @@ const layout = {
   wrapperCol: { span: 14 },
 };
 
+const Day = 'YYYY-MM-DD'
+
 const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
   const [form] = Form.useForm();
-  const [TableData, setTableData] = useState<any>([]);
+  const [list, setList] = useState<any>([]);
   const [currPage, setCurrPage] = useState(DEFAULT_PAGE_NUM);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [modalVisible, setmodalVisible] = useState<boolean>(false);
@@ -36,40 +51,44 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
   const [rowData, setRowData] = useState<object>({});
   const [intersectionList, setIntersectionList] = useState<any>([]);
 
-
   useEffect(() => {
     getIntersectionList();
   }, []);
 
   useEffect(() => {
-    initList()
+    initList();
   }, [currPage, pageSize]);
 
-  const expandedRowRender = () => {
+  // 二级下拉Table
+  const expandedRowRender = (prors: any) => {
     const columns = [
       {
         title: '巡检路口',
-        dataIndex: 'intIntersectionName',
         key: 'intIntersectionName',
+        render: (item: any) => (
+          <div>
+            {item?.intIntersectionName}({item?.intIntersectionId})
+          </div>
+        ),
       },
       {
         title: '巡检完成次数',
         dataIndex: 'publicSentimentType',
         key: 'publicSentimentType',
-      }
+      },
     ];
 
-    return <Table rowKey='id' columns={columns} dataSource={[]} pagination={false} />
-  }
+    return <Table rowKey="id" columns={columns} dataSource={prors?.engineerScheduleItemDTO} pagination={false} />;
+  };
 
   /**
-  * @name: 获取所有路口信息
-  */
+   * @name: 获取所有路口信息
+   */
   const getIntersectionList = async () => {
     try {
       const { code, data, msg } = await getIntersectionInfo();
-      if (code == 0) setIntersectionList(data)
-      else message.error(msg)
+      if (code == 0) setIntersectionList(data);
+      else message.error(msg);
     } catch (error) { }
   };
 
@@ -78,47 +97,67 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
    */
   const initList = async () => {
     const param = form?.getFieldsValue();
-    const { code, data, msg } = await getpages({ current: currPage, size: pageSize, template: { ...param } })
-    if (code === 0) setTableData(data.records)
-    else message.success(msg)
-  }
+    const { code, data, msg } = await fetchList({
+      current: currPage,
+      size: pageSize,
+      template: { ...param },
+    });
+    const list = _.map(data?.records, (item: any) => ({
+      ...item?.patrolSchedule,
+      engineerScheduleItemDTO: item?.engineerScheduleItemDTO,
+      dateRange: `${moment(item?.patrolSchedule.inspScheduleBeginDate).format(Day)} ~ ${moment(item?.patrolSchedule.inspScheduleEndDate).format(Day)}`
+    }))
+    if (code === 0) setList(list);
+    else message.error(msg);
+  };
 
   const handleEidt = (param: any) => {
-    setModalType('编辑')
-    setmodalVisible(true)
-    setRowData(param)
-  }
+    setModalType('编辑');
+    setmodalVisible(true);
+    setRowData(param);
+  };
 
   const handleDetele = async (param: any) => {
-    const { code, msg } = await Delete(param.id)
-    if (code === 0) message.success('删除成功'), initList()
-    else message.warning(msg)
+    const { code, msg } = await deleteOrder(param.id);
+    if (code === 0) message.success('删除成功'), initList();
+    else message.error(msg);
+  };
+
+  const sendTask = async (record: any) => {
+    const { code, msg } = await distributeTask(record.id, USER_ENGINEER);
+    if (code === 0) message.success('派单成功'), initList();
+    else message.error(msg);
   }
 
+  //Table ... 操作栏
   const menu = (data: any) => {
     return (
       <Menu>
-        <Menu.Item key="1" onClick={() => { history.push({ pathname: '/opinion/detail', query: { id: data.id, type: 'look' } }) }}>查看</Menu.Item>
-        <Menu.Item key="2" onClick={() => handleEidt(data)}>编辑</Menu.Item>
-        <Menu.Item key="3">
-          <Popconfirm title="是否确认删除?" onConfirm={() => handleDetele(data)}>
-            删除
-          </Popconfirm>
-        </Menu.Item>
+        {!data?.inspScheduleAllocationTime && (<>
+          <Menu.Item key="2" onClick={() => handleEidt(data)}>
+            编辑
+          </Menu.Item>
+          <Menu.Item key="3">
+            <Popconfirm title="是否确认删除?" onConfirm={() => handleDetele(data)}>
+              删除
+            </Popconfirm>
+          </Menu.Item>
+        </>)}
       </Menu>
-    )
+    );
   };
 
-  const columns = [
+  const columns: any = [
     {
       title: '创建日期',
       dataIndex: 'createTime',
       key: 'createTime',
+      render: (item: any) => item ? moment(item).format('YYYY-MM-DD') : null,
     },
     {
       title: '巡检路口总数',
-      dataIndex: 'publicSentimentType',
-      key: 'publicSentimentType',
+      key: 'inspScheduleCount',
+      dataIndex: 'inspScheduleCount',
     },
     {
       title: '巡检负责人',
@@ -127,28 +166,34 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
     },
     {
       title: '完成时段',
-      dataIndex: 'CompletionTime',
-      key: 'CompletionTime',
-      valueType: 'date',
-      render: (item: any) => moment(item).format("YYYY-MM-DD")
+      dataIndex: 'dateRange',
+      key: 'dateRange',
     },
     {
       title: '派单时间',
       dataIndex: 'inspScheduleAllocationTime',
       key: 'inspScheduleAllocationTime',
+      render: (item: any) => item ? moment(item).format('YYYY-MM-DD') : null,
+    },
+    {
+      width: 80,
+      render: (text: any, record: any) => {
+        if (!record?.inspScheduleAllocationTime) {
+          return (<><a onClick={() => sendTask(record)}>派单</a></>)
+        } else {
+          return null
+        }
+      },
     },
     {
       title: '操作',
       dataIndex: 'name',
       key: 'id',
-      width: '300px',
+      align: 'center',
       render: (text: any, record: any) => (
         <Space>
-          <a onClick={() => {}}>派单</a>
-          <a onClick={() => {}}>创建周计划</a>
-          <a onClick={() => {}}>查看周计划</a>
           <Dropdown overlay={menu(record)}>
-            <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
+            <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
               <EllipsisOutlined />
             </a>
           </Dropdown>
@@ -162,12 +207,20 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
       <Form {...layout} name="formList" form={form} initialValues={{ remember: true }}>
         <Row>
           <Col span={2}>
-            <Button type="primary" shape="round" onClick={() => { setmodalVisible(true), setModalType('新增') }}>新增巡检单</Button>
+            <Button
+              type="primary"
+              shape="round"
+              onClick={() => {
+                setmodalVisible(true), setModalType('新增');
+              }}
+            >
+              新增巡检单
+            </Button>
           </Col>
           <Col span={6}>
             <Form.Item {...layout} label="路口名称" name="correlateIntersection">
               <Select placeholder="全部">
-                {_.map(intersectionList, (item: any,) => (
+                {_.map(intersectionList, (item: any) => (
                   <Select.Option key={item?.intersectionCode} value={item?.intersectionName}>
                     {item?.intersectionName}
                   </Select.Option>
@@ -177,22 +230,43 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
           </Col>
           <Col span={4}>
             <Space>
-              <Button type="primary" onClick={() => initList()}>确认</Button>
+              <Button type="primary" onClick={() => initList()}>
+                确认
+              </Button>
               <Button onClick={() => form.resetFields()}>重置</Button>
             </Space>
           </Col>
         </Row>
       </Form>
       <div className={style.table}>
-        <Table columns={columns} dataSource={[]} rowKey='id' expandable={{ expandedRowRender }} pagination={false} />
-        <div className="global-pagination" >
-          <Pagination showQuickJumper defaultCurrent={currPage} total={TableData?.length} onChange={(val: number, pageSize?: number) => {setCurrPage(val),pageSize?setPageSize(pageSize):null}} />
+        <Table
+          columns={columns}
+          dataSource={list}
+          rowKey="id"
+          expandable={{ expandedRowRender }}
+          pagination={false}
+        />
+        <div className="global-pagination">
+          <Pagination
+            showQuickJumper
+            defaultCurrent={currPage}
+            total={list?.length}
+            onChange={(val: number, pageSize?: number) => {
+              setCurrPage(val), pageSize ? setPageSize(pageSize) : null;
+            }}
+          />
         </div>
       </div>
-      <ModalForm modalVisible={modalVisible} initList={initList} onCancel={() => setmodalVisible(false)} ModalType={modalType} editData={rowData} />
-    </div >
-  )
-}
+      <ModalForm
+        modalVisible={modalVisible}
+        initList={initList}
+        onCancel={() => setmodalVisible(false)}
+        ModalType={modalType}
+        editData={rowData}
+      />
+    </div>
+  );
+};
 
 export default connect(({ loading }: any) => ({
   loading: loading.effects['productManagerList/fetchList'],

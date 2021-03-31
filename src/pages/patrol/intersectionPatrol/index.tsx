@@ -7,9 +7,9 @@
 import React, { useState, useEffect } from 'react';
 import { connect, history } from 'umi';
 import { Dispatch, AnyAction } from 'redux';
-import { Button, Col, Row, Form, Select, Table, message, Dropdown, Menu, Space, Popconfirm, Pagination } from 'antd';
+import { Button, Col, Row, Form, Select, Table, message, Dropdown, Menu, Space, Pagination } from 'antd';
 import { EllipsisOutlined } from '@ant-design/icons';
-import { getpages, getIntersectionInfo, Delete } from './service'
+import { getpages, getIntersectionInfo } from './service'
 import { DEFAULT_PAGE_NUM, DEFAULT_PAGE_SIZE } from '@/const'
 import ModalForm from './ModalForm'
 import _ from 'lodash';
@@ -45,44 +45,6 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
     initList()
   }, [currPage, pageSize]);
 
-  const expandedRowRender = () => {
-    const columns = [
-      {
-        title: '巡检路口',
-        dataIndex: 'intIntersectionName',
-        key: 'intIntersectionName',
-      },
-      {
-        title: '巡检结果',
-        dataIndex: 'publicSentimentType',
-        key: 'publicSentimentType',
-      },
-      {
-        title: '异常内容',
-        dataIndex: 'ycnr',
-        key: 'ycnr',
-      },
-      {
-        title: '',
-        dataIndex: 'name',
-        key: 'id',
-        width: '284px',
-        render: (text: any, record: any) => (
-          <Space>
-            <a onClick={() => {}}>提交报告</a>
-            <a onClick={() => {}}>编辑</a>
-          </Space>
-        ),
-      },
-    ];
-
-    return (
-      <div>
-        <Table columns={columns} dataSource={[{}]} pagination={false} />
-      </div>
-    )
-  }
-
   /**
   * @name: 获取所有路口信息
   */
@@ -100,32 +62,14 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
   const initList = async () => {
     const param = form?.getFieldsValue();
     const { code, data, msg } = await getpages({ current: currPage, size: pageSize, template: { ...param } })
-    if (code === 0) setTableData(data.records.map((item: any) => item.dailyTask))
+    if (code === 0) setTableData(data?.records.map((item: any) => item.dailyTask))
     else message.success(msg)
-  }
-
-  const handleEidt = (param: any) => {
-    setModalType('编辑')
-    setmodalVisible(true)
-    setRowData(param)
-  }
-
-  const handleDetele = async (param: any) => {
-    const { code, msg } = await Delete(param.id)
-    if (code === 0) message.success('删除成功'), initList()
-    else message.warning(msg)
   }
 
   const menu = (data: any) => {
     return (
       <Menu>
         <Menu.Item key="1" onClick={() => { history.push({ pathname: '/patrol/AuditReport', query: { id: data.id, type: 'look' } }) }}>查看</Menu.Item>
-        <Menu.Item key="2" onClick={() => handleEidt(data)}>驳回原因</Menu.Item>
-        <Menu.Item key="3">
-          <Popconfirm title="是否确认删除?" onConfirm={() => handleDetele(data)}>
-            删除
-          </Popconfirm>
-        </Menu.Item>
       </Menu>
     )
   };
@@ -185,9 +129,6 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
     <div>
       <Form {...layout} name="formList" form={form} initialValues={{ remember: true }}>
         <Row>
-          <Col span={2}>
-            <Button type="primary" shape="round" onClick={() => { setmodalVisible(true), setModalType('新增') }}>新增巡检单</Button>
-          </Col>
           <Col span={6}>
             <Form.Item {...layout} label="路口名称" name="correlateIntersection">
               <Select placeholder="全部">
@@ -208,7 +149,7 @@ const PatrolTask: React.FC<CompProps> = ({ dispatch, loading }) => {
         </Row>
       </Form>
       <div className={style.table}>
-        <Table columns={columns} dataSource={TableData} rowKey='id' expandable={{ expandedRowRender }} pagination={false} />
+        <Table columns={columns} dataSource={TableData} rowKey='id' pagination={false} />
         <div className="global-pagination" >
           <Pagination showQuickJumper defaultCurrent={currPage} total={TableData?.length} onChange={(val: number, pageSize?: number) => {setCurrPage(val),pageSize?setPageSize(pageSize):null}} />
         </div>
